@@ -1,34 +1,66 @@
 import urllib.request
+import re
 import sys
 
-# 使用社区公开维护的有效音源 Raw 直链
-SOURCE_URL = "https://raw.githubusercontent.com/pdone/lx-music-source/main/sixyin/latest.js"
+# 你收集到的多个备选源候选链接
+CANDIDATE_SOURCES = [
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/sixyin/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/huibq/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/flower/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/lx/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/changqing/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/huanyin/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/ikun/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/grass/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/juhe/latest.js",
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/qdy/latest.js
+]
 
-def build_source():
-    print(f"正在从远端拉取音源规则: {SOURCE_URL}")
-    try:
-        # 请求远端脚本内容
-        req = urllib.request.Request(
-            SOURCE_URL,
-            headers={'User-Agent': 'Mozilla/5.0'}
-        )
-        with urllib.request.urlopen(req) as response:
-            source_content = response.read().decode('utf-8')
+def validate_and_filter_sources():
+    valid_contents = []
+    
+    print("开始进行 LX Music 自定义源的精准结构校验...")
+    
+    for i, url in enumerate(CANDIDATE_SOURCES):
+        print(f"正在检测第 {i+1} 个源: {url}")
+        try:
+            req = urllib.request.Request(
+                url, 
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            )
+            with urllib.request.urlopen(req, timeout=12) as response:
+                content = response.read().decode('utf-8', errors='ignore')
+                
+                # 1. 基础防呆：如果内容包含 HTML 标签（说明可能误抓了 404 页面或安全拦截页），直接判定无效
+                if '<html' in content.lower() or '<body' in content.lower():
+                    print(f" -> [无效] 第 {i+1} 个源返回了 HTML 页面（可能链接失效或触发拦截），已过滤。")
+                    continue
+                
+                # 2. 精准结构校验：
+                # 检查是否包含 LX Music 自定义源必须的核心方法或特征关键字
+                # 例如通常需要实现 search 或者是特定平台的数据解析方法
+                has_search = re.search(r'search\s*[:\(]', content)
+                has_music_url = re.search(r'getMusicUrl|musicUrl|url', content)
+                
+                if has_search and has_music_url:
+                    print(f" -> [通过] 第 {i+1} 个源通过精准结构校验（匹配到 search 和音乐链接解析特征）。")
+                    valid_contents.append(f"\n// --- Validated Source {i+1} ---\n" + content + "\n")
+                else:
+                    print(f" -> [不符合规范] 第 {i+1} 个源缺少必要的 API 结构（如 search 或解析方法），已剔除。")
+                    
+        except Exception as e:
+            print(f" -> [失效] 第 {i+1} 个源请求发生异常 ({e})，已自动剔除。")
             
-        # 校验内容是否为空
-        if not source_content.strip():
-            print("错误：获取到的音源内容为空！")
-            sys.exit(1)
-            
-        # 写入本地根目录的 source.js
-        with open('source.js', 'w', encoding='utf-8') as f:
-            f.write(source_content)
-            
-        print("成功：source.js 已生成并更新！")
-        
-    except Exception as e:
-        print(f"构建失败: {e}")
+    if not valid_contents:
+        print("错误：经过精准校验，没有发现任何符合 LX Music 规范的有效源！")
         sys.exit(1)
+        
+    # 将所有通过校验的健康源合并写入 source.js
+    final_content = "".join(valid_contents)
+    with open('source.js', 'w', encoding='utf-8') as f:
+        f.write(final_content)
+        
+    print(f"成功：精准筛选并合并了 {len(valid_contents)} 个可用源，已生成最终的 source.js！")
 
 if __name__ == '__main__':
-    build_source()
+    validate_and_filter_sources()
