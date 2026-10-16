@@ -2,7 +2,7 @@ import urllib.request
 import re
 import sys
 
-# 你收集到的多个备选源候选链接
+# 你收集到的多个备选源候选链接（请确保每个 URL 都有闭合的双引号和末尾的逗号）
 CANDIDATE_SOURCES = [
     "https://raw.githubusercontent.com/pdone/lx-music-source/main/sixyin/latest.js",
     "https://raw.githubusercontent.com/pdone/lx-music-source/main/huibq/latest.js",
@@ -13,7 +13,7 @@ CANDIDATE_SOURCES = [
     "https://raw.githubusercontent.com/pdone/lx-music-source/main/ikun/latest.js",
     "https://raw.githubusercontent.com/pdone/lx-music-source/main/grass/latest.js",
     "https://raw.githubusercontent.com/pdone/lx-music-source/main/juhe/latest.js",
-    "https://raw.githubusercontent.com/pdone/lx-music-source/main/qdy/latest.js
+    "https://raw.githubusercontent.com/pdone/lx-music-source/main/qdy/latest.js"
 ]
 
 def validate_and_filter_sources():
@@ -37,16 +37,14 @@ def validate_and_filter_sources():
                     continue
                 
                 # 2. 精准结构校验：
-                # 检查是否包含 LX Music 自定义源必须的核心方法或特征关键字
-                # 例如通常需要实现 search 或者是特定平台的数据解析方法
                 has_search = re.search(r'search\s*[:\(]', content)
                 has_music_url = re.search(r'getMusicUrl|musicUrl|url', content)
                 
                 if has_search and has_music_url:
-                    print(f" -> [通过] 第 {i+1} 个源通过精准结构校验（匹配到 search 和音乐链接解析特征）。")
+                    print(f" -> [通过] 第 {i+1} 个源通过精准结构校验。")
                     valid_contents.append(f"\n// --- Validated Source {i+1} ---\n" + content + "\n")
                 else:
-                    print(f" -> [不符合规范] 第 {i+1} 个源缺少必要的 API 结构（如 search 或解析方法），已剔除。")
+                    print(f" -> [不符合规范] 第 {i+1} 个源缺少必要的 API 结构，已剔除。")
                     
         except Exception as e:
             print(f" -> [失效] 第 {i+1} 个源请求发生异常 ({e})，已自动剔除。")
