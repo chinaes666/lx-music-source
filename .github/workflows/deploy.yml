@@ -2,8 +2,8 @@ name: Auto Update and Deploy LX Source
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # 每 6 小时自动运行一次
-  workflow_dispatch: # 支持手动触发
+    - cron: '0 */6 * * *' # 每隔 6 小时自动运行一次
+  workflow_dispatch: # 允许在 GitHub 后台手动点击运行
 
 jobs:
   deploy:
@@ -22,12 +22,11 @@ jobs:
           
       - name: Run Build Script
         run: |
-          python build.py # 你的聚合/更新脚本，负责生成最新的 source.js
+          python build.py # 运行你的脚本，生成 source.js 存放在根目录
           
-      - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+      - name: Publish to Cloudflare Pages via Wrangler
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'lx-music-source' # 你的 Cloudflare Pages 项目名
-          directory: '.' # 输出文件所在的目录
+          command: pages deploy . --project-name=lx-music-source --branch=main --commit-dirty=true
